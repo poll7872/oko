@@ -1,16 +1,18 @@
 from typing import List, Optional
 import typer
 from rich.prompt import Prompt, Confirm
-from rich.panel import Panel
 from datetime import datetime
 from pathlib import Path
 
 from .core.config import config, ConfigType, load_endpoints
 from .core.endpoints import add_endpoint
 from .core.runner import run_endpoint
+
 from .ui import (
     console,
     print_logo,
+    print_header,
+    print_section,
     print_success,
     print_error,
     print_warning,
@@ -23,16 +25,19 @@ app = typer.Typer(
     rich_markup_mode="rich",
     no_args_is_help=True,
 )
+
 endpoint_app = typer.Typer(help="Manage API endpoints")
 app.add_typer(endpoint_app, name="endpoint")
 
 
+# ------------------------------------------------------------
+# INIT
+# ------------------------------------------------------------
 @app.command("init")
 def init():
     """Initialize OKO configuration."""
     print_logo()
-    console.print("[bold primary]🚀 Welcome to OKO CLI![/bold primary]")
-    console.print("Let's set up your configuration.\n")
+    print_header("Welcome to OKO CLI 🚀")
 
     if config.find_config():
         current_config = config.load_config()
@@ -46,7 +51,8 @@ def init():
             console.print("[dim]Initialization cancelled.[/dim]")
             return
 
-    console.print("\n[bold primary]Where would you like to store endpoints?[/bold primary]")
+    console.print("[primary]\nWhere would you like to store endpoints?[/primary]\n")
+
     options = [
         ("project", "In this project (.oko/) - For team collaboration"),
         ("global", "Global (~/.oko/) - For personal use"),
@@ -76,6 +82,7 @@ def init():
     if config_type == "project":
         project_name = Prompt.ask("\nProject name", default=Path.cwd().name)
 
+    # Summary panel
     summary = (
         f"  [bold]Type:[/bold] [info]{config_type}[/info]\n"
         f"  [bold]Location:[/bold] [info]{config_dir}[/info]\n"
@@ -89,6 +96,7 @@ def init():
         console.print("[dim]Cancelled.[/dim]")
         return
 
+    # Save config
     config_data = {
         "created_at": datetime.now().isoformat(),
         "project_name": project_name,
@@ -101,17 +109,24 @@ def init():
         "  • Add an endpoint: [secondary]oko endpoint add <alias> <url>[/secondary]\n"
         "  • Run an endpoint: [secondary]oko run <alias>[/secondary]"
     )
-    print_success(success_message, title="✅ OKO initialized successfully!")
+    print_success(success_message, title="OKO initialized successfully!")
 
 
+# ------------------------------------------------------------
+# INFO
+# ------------------------------------------------------------
 @app.command("info")
 def info():
     """Show current OKO configuration."""
     if not config.find_config():
-        print_warning("No OKO configuration found. Run [secondary]oko init[/secondary] to get started.")
+        print_warning(
+            "No OKO configuration found. Run [secondary]oko init[/secondary] to get started."
+        )
         return
 
     print_logo()
+    print_header("OKO Configuration")
+
     current_config = config.load_config()
 
     config_details = (
@@ -119,16 +134,25 @@ def info():
         f"  [bold]Location:[/bold] [info]{config.config_dir}[/info]\n"
         f"  [bold]Version:[/bold] [info]{current_config.get('version', '1.0')}[/info]\n"
     )
+
     if current_config.get("project_name"):
         config_details += f"  [bold]Project:[/bold] [info]{current_config.get('project_name')}[/info]\n"
+
     if current_config.get("created_at"):
-        config_details += f"  [bold]Created:[/bold] [info]{current_config.get('created_at')}[/info]"
+        config_details += (
+            f"  [bold]Created:[/bold] [info]{current_config.get('created_at')}[/info]"
+        )
 
-    print_info_panel(config_details, title="OKO Configuration")
+    print_section("Configuration Details", config_details)
 
+    # Endpoints
     endpoints_data = load_endpoints()
     endpoints = endpoints_data.get("endpoints", {})
-    console.print(f"\n[bold primary]📊 Endpoints found:[/bold primary] [bold secondary]{len(endpoints)}[/bold secondary]")
+
+    console.print(
+        f"\n[bold primary]📊 Endpoints found:[/bold primary] "
+        f"[bold secondary]{len(endpoints)}[/bold secondary]\n"
+    )
 
     if endpoints:
         table = get_table()
@@ -139,33 +163,40 @@ def info():
         for alias, endpoint in endpoints.items():
             method = endpoint.get("method", "GET")
             url = endpoint.get("url", "")
-            table.add_row(alias, method, url[:70] + ("..." if len(url) > 70 else ""))
-        
+            truncated = url[:70] + ("..." if len(url) > 70 else "")
+            table.add_row(alias, method, truncated)
+
         console.print(table)
 
 
+# ------------------------------------------------------------
+# ENDPOINT ADD
+# ------------------------------------------------------------
 @endpoint_app.command("add")
 def endpoint_add(
     alias: str = typer.Argument(..., help="Alias to identify the endpoint"),
     url: str = typer.Argument(..., help="Full URL of the endpoint"),
-    method: str = typer.Option(
-        "GET", "--method", "-M", help="HTTP method"
-    ),
+    method: str = typer.Option("GET", "--method", "-M", help="HTTP method"),
 ):
     """Register a new endpoint."""
     if not config.find_config():
-        print_warning("No OKO configuration found. Run [secondary]oko init[/secondary] first.")
+        print_warning(
+            "No OKO configuration found. Run [secondary]oko init[/secondary] first."
+        )
         raise typer.Exit(1)
 
     method = method.upper()
     SUPPORTED_METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"]
 
     if method not in SUPPORTED_METHODS:
-        print_error(f"Method '{method}' not supported. Choose from: [info]{', '.join(SUPPORTED_METHODS)}[/info]")
+        print_error(
+            f"Method '{method}' not supported. Choose from: "
+            f"[info]{', '.join(SUPPORTED_METHODS)}[/info]"
+        )
         raise typer.Exit(1)
 
     add_endpoint(alias, url, method)
-    
+
     message = (
         f"Alias: [primary]{alias}[/primary]\n"
         f"URL: [info]{method} {url}[/info]\n"
@@ -174,6 +205,9 @@ def endpoint_add(
     print_success(message, title=f"Endpoint '{alias}' saved!")
 
 
+# ------------------------------------------------------------
+# RUN
+# ------------------------------------------------------------
 @app.command("run")
 def run(
     alias: str,
@@ -184,24 +218,32 @@ def run(
         None, "--header", "-H", help="HTTP headers (key=value). Use multiple times."
     ),
     body: Optional[str] = typer.Option(
-        None, "--body", "-B", help="JSON body or use '@file.json' to load from a file."
+        None, "--body", "-B", help="JSON body or '@file.json' to load from a file."
     ),
 ):
     """
     Run a saved endpoint.
-    
+
     Examples:
       - [cyan]oko run my_api -p id=123[/cyan]
       - [cyan]oko run create_user -B '{"name":"Test"}'[/cyan]
       - [cyan]oko run upload -B @data.json[/cyan]
     """
     if not config.find_config():
-        print_warning("No OKO configuration found. Run [secondary]oko init[/secondary] first.")
+        print_warning(
+            "No OKO configuration found. Run [secondary]oko init[/secondary] first."
+        )
         raise typer.Exit(1)
 
-    with console.status(f"[bold green]Running [primary]'{alias}'[/primary]...[/bold green]", spinner="dots"):
+    with console.status(
+        f"[bold green]Running [primary]'{alias}'[/primary]...[/bold green]",
+        spinner="dots",
+    ):
         run_endpoint(alias, console, param, header, body)
 
 
+# ------------------------------------------------------------
+# MAIN
+# ------------------------------------------------------------
 if __name__ == "__main__":
     app()
