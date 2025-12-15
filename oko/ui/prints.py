@@ -1,5 +1,7 @@
 from rich.console import Console
 from rich.panel import Panel
+from rich.table import Table
+from rich.box import ROUNDED
 from .theme import custom_theme
 
 console = Console(theme=custom_theme)
@@ -74,3 +76,25 @@ def print_info_panel(message: str, title: str = "Info"):
             padding=1,
         )
     )
+
+
+def print_table(
+    title: str,
+    columns: list[str],
+    rows: list[list[str]],
+):
+    table = Table(
+        title=title,
+        box=ROUNDED,
+        show_header=True,
+        header_style="title",
+        style="primary",
+    )
+
+    for col in columns:
+        table.add_column(col, style="white", no_wrap=True)
+
+    for row in rows:
+        table.add_row(*row)
+
+    console.print(table)
