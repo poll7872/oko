@@ -100,6 +100,9 @@ def endpoint_run_cmd(
         None, "--header", "-H", help="Headers (key=value)"
     ),
     json_body: str = typer.Option(None, "--json", help="JSON body as string"),
+    variables: list[str] = typer.Option(
+        None, "--var", help="Runtime variables (key=value)"
+    ),
 ):
     """
     Run an endpoint.
@@ -116,6 +119,7 @@ def endpoint_run_cmd(
                 params=_parse_kv(params) if params else None,
                 headers=_parse_kv(headers) if headers else None,
                 json_body=json.loads(json_body) if json_body else None,
+                runtime_variables=_parse_kv(variables) if variables else None,
             )
 
         # ── Metadata ───────────────────────────────

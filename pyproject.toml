@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "oko-cli"
-version = "0.2.0"
+version = "0.2.1"
 description = "Elegant CLI for API endpoint testing"
 readme = "README.md"
 authors = [{ name = "Edward Ojeda", email = "edward.ojeda.es@gmail.com" }]

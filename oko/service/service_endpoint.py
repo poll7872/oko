@@ -103,6 +103,7 @@ def run_endpoint(
     headers: Optional[Dict[str, str]] = None,
     json_body: Optional[Dict] = None,
     timeout: int = 10,
+    runtime_variables: Optional[Dict[str, str]] = None,
 ) -> httpx.Response:
     # 1. Load config
     config = load_config()
@@ -125,8 +126,10 @@ def run_endpoint(
 
     endpoint = data["endpoints"][alias]
 
-    # 4. Load variables
-    variables = load_variables()
+    # 4. Load variables and merge with runtime variables
+    global_variables = load_variables()
+    # Runtime variables take precedence over global variables
+    variables = {**global_variables, **(runtime_variables or {})}
 
     # 5. Resolve variables
     url = resolve_variables(endpoint["url"], variables)
