@@ -14,6 +14,7 @@ from oko.service.service_config import (
     create_config_file,
     create_oko_folder,
 )
+from oko.service.service_docs import generate_api_readme
 from rich.console import Console
 
 console = Console(theme=custom_theme)
@@ -80,10 +81,12 @@ def init_project():
 
     # 5. Create config.json
     create_config_file(oko_root=location, install_type=selected["key"])
+    docs_path = generate_api_readme()
 
     # 6. Final success message
     success_message = (
         f"Configuration saved at: [info]{location}[/info]\n\n"
+        f"API docs file: [info]{docs_path}[/info]\n\n"
         "[bold]Next steps:[/bold]\n"
         "  • Add a collection: [secondary]oko collection add <alias>[/secondary]\n"
         "  • Add an endpoint: [secondary]oko endpoint add <alias> <url>[/secondary]\n"
