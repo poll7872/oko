@@ -5,12 +5,14 @@ from oko.service.service_variable import (
     delete_variable,
     load_variables,
 )
+from oko.service.service_docs import generate_api_readme
 from oko.ui.prints import (
     print_header,
     print_success,
     print_error,
     print_info_panel,
     print_table,
+    print_kv,
 )
 
 app = typer.Typer(help="Manage variables")
@@ -30,11 +32,13 @@ def variable_add(
         key, value = pair.split("=", 1)
 
         add_variable(key.strip(), value.strip())
+        docs_path = generate_api_readme()
 
         print_success(
             f"Variable [highlight]{key}[/highlight] saved successfully",
             title="Variable Added",
         )
+        print_kv("API docs", str(docs_path))
 
     except Exception as e:
         print_error(str(e), title="Variable Error")
@@ -78,11 +82,13 @@ def variable_delete(
     """
     try:
         delete_variable(key)
+        docs_path = generate_api_readme()
 
         print_success(
             f"Variable [highlight]{key}[/highlight] deleted successfully",
             title="Variable Deleted",
         )
+        print_kv("API docs", str(docs_path))
 
     except KeyError as e:
         print_error(str(e), title="Variable Not Found")
