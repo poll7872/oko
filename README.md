@@ -1,192 +1,214 @@
 # OKO CLI
 
 ![Python](https://img.shields.io/badge/python-3.8%2B-blue)
-
 ![License](https://img.shields.io/badge/license-MIT-green)
-
 ![Status](https://img.shields.io/badge/status-beta-yellow)
-
 ![CLI](https://img.shields.io/badge/interface-CLI-lightgrey)
-
 ![Build](https://img.shields.io/badge/build-hatchling-blueviolet)
 
-**OKO** is a minimal and elegant CLI tool for testing API endpoints directly from your terminal.
+**OKO** es una CLI ligera para probar APIs y endpoints desde terminal.
 
-Built with care for developers who prefer working from the command line and want a lightweight alternative to tools like Postman or Insomnia — without the overhead.
-
----
-
-## Features
-
-- 📁 Collections to organize endpoints
-- 🔗 Named endpoints with aliases
-- 🧩 Global variables with `{{variable}}` resolution
-- 🧪 Run HTTP requests from the terminal
-- 🎨 Clean, readable output using Rich
-- ⚙️ Simple JSON-based configuration
-- 🚀 Fast workflow, zero UI distractions
+Diseñada para flujo rápido: colecciones, aliases claros, variables, ejecución inmediata y salida legible.
 
 ---
 
-### Installation
+## ¿Qué resuelve?
+
+- Organizar endpoints por colección
+- Reutilizar variables globales (`{{base_url}}`, `{{token}}`, etc.)
+- Ejecutar requests con params, headers y body JSON
+- Pedir variables faltantes de forma interactiva
+- Reutilizar valores anteriores con defaults por historial
+- Previsualizar requests sin enviarlas (`--dry-run`)
+
+---
+
+## Instalación
 
 ```bash
 pip install oko-cli
 ```
 
-### Getting Started
-
-Initialize a workspace
+## Inicio rápido
 
 ```bash
 oko init
 ```
 
-This creates the local OKO workspace with configuration, collections, and variables support.
+---
 
-### Collections
+## Ejemplo completo (API ficticia)
 
-Create a collection
+Para documentar comandos de forma consistente, usaremos una API ficticia:
+
+- Nombre: **Aurora Store API**
+- Base URL: `https://api.aurora-store.test`
+- Recurso principal: `products`
+
+### 1) Crear colección
 
 ```bash
-oko collection create products
-```
-
-List existing collections
-
-```bash
+oko collection add catalog
 oko collection list
 ```
 
-### Endpoints
-
-Add an endpoint to a collection
+### 2) Configurar variables globales
 
 ```bash
-oko endpoint add products list https://dummyjson.com/products --method GET
-```
-
-List endpoints in a collection
-
-```bash
-oko endpoint list products
-```
-
-Run an endpoint
-
-```bash
-oko endpoint run products list
-```
-
-### Variables
-
-OKO supports global variables stored in the config file.
-
-Add a variable
-
-```bash
-oko variable add base_url=https://dummyjson.com
-```
-
-List variables
-
-```bash
+oko variable add base_url=https://api.aurora-store.test
+oko variable add auth_token=demo-token-123
 oko variable list
 ```
 
-Delete a variable
+### 3) Registrar endpoints con aliases claros
 
 ```bash
-oko variable delete base_url
+# Listar productos
+oko endpoint add catalog ProductsList '{{base_url}}/products' --method GET
+
+# Buscar por categoría con paginación
+oko endpoint add catalog ProductsByCategory '{{base_url}}/products?category={{category}}&take={{take}}&skip={{skip}}' --method GET
+
+# Obtener detalle por id
+oko endpoint add catalog ProductDetail '{{base_url}}/products/{{product_id}}' --method GET
+
+# Crear producto
+oko endpoint add catalog ProductCreate '{{base_url}}/products' --method POST
+
+oko endpoint list catalog
 ```
 
-### Variable Resolution
+### 4) Ejecutar endpoints
 
-Variables can be referenced using the {{variable}} syntax:
+Ejecución directa:
 
 ```bash
-oko endpoint add products list {{base_url}}/products --method GET
+oko endpoint run catalog ProductsList
 ```
 
-Variables are automatically resolved in:
+Con variables runtime (forma larga):
 
-- URLs
-- Query parameters
+```bash
+oko endpoint run catalog ProductsByCategory \
+  --var category=hoodies \
+  --var take=10 \
+  --var skip=0
+```
+
+Con variables runtime (forma compacta):
+
+```bash
+oko endpoint run catalog ProductsByCategory --vars category=hoodies,take=10,skip=0
+```
+
+Con headers:
+
+```bash
+oko endpoint run catalog ProductDetail \
+  --var product_id=42 \
+  -H Authorization='Bearer {{auth_token}}'
+```
+
+Con body JSON:
+
+```bash
+oko endpoint run catalog ProductCreate \
+  --json '{"name":"Aurora Hoodie","price":49.9,"inventory":25}'
+```
+
+### 5) Prompt interactivo de variables faltantes
+
+Si ejecutas un endpoint sin pasar todas las variables necesarias, OKO las solicita:
+
+```bash
+oko endpoint run catalog ProductsByCategory
+```
+
+Notas:
+
+- Si ya usaste valores antes, aparecerán como **default** en el prompt.
+- Presiona `Enter` para reutilizar el valor sugerido.
+
+### 6) Validar sin enviar request (`--dry-run`)
+
+```bash
+oko endpoint run catalog ProductsByCategory --vars category=hoodies,take=5,skip=0 --dry-run
+```
+
+Muestra request final resuelta (método, URL, params, headers, JSON) sin hacer llamada HTTP.
+
+### 7) Ejecución no interactiva
+
+Útil para CI/scripts cuando quieres fallar si faltan variables:
+
+```bash
+oko endpoint run catalog ProductsByCategory --no-prompt-missing
+```
+
+---
+
+## Sintaxis de variables
+
+OKO resuelve variables en:
+
+- URL
+- Query params
 - Headers
-- JSON request bodies
+- JSON body
 
-Nested variables are also supported:
+Ejemplos:
 
 ```text
+{{base_url}}
+{{auth_token}}
 {{user.id}}
-{{auth.token}}
-```
-
-### Running Requests with Options
-
-Headers
-
-```bash
-oko endpoint run auth currentUser -H Authorization="Bearer {{token}}"
-```
-
-Query Parameters
-
-```bash
-oko endpoint run products list -p limit=3 -p page=1
-```
-
-JSON Body
-
-```bash
-oko endpoint run users create --json '{"name":"John","email":"john@example.com"}'
 ```
 
 ---
 
-Output
+## Comandos de referencia rápida
 
-OKO displays:
+```bash
+oko init
+oko collection add <name>
+oko collection list
+oko variable add <key>=<value>
+oko variable list
+oko variable delete <key>
+oko endpoint add <collection> <alias> <url> --method <GET|POST|PUT|PATCH|DELETE>
+oko endpoint list <collection>
+oko endpoint run <collection> <alias> [opciones]
+```
 
-- HTTP status (color-coded)
-- Method and URL
-- Formatted JSON responses
-- Plain text responses when applicable
+Opciones útiles de `endpoint run`:
 
-Designed to be readable, focused, and terminal-friendly.
-
----
-
-Philosophy
-
-OKO is intentionally simple.
-
-- No UI
-- No accounts
-- No syncing
-- No cloud dependencies
-
-Just your terminal, your endpoints, and clean output.
-
-Built for personal use — shared in case it helps others.
+- `--var key=value` (repetible)
+- `--vars key1=v1,key2=v2`
+- `-p key=value` (query param)
+- `-H key=value` (header)
+- `--json '{...}'`
+- `--prompt-missing / --no-prompt-missing`
+- `--dry-run`
 
 ---
 
-Requirements
+## Filosofía
+
+OKO es intencionalmente simple:
+
+- Sin UI
+- Sin cuentas
+- Sin sincronización
+- Sin dependencia de nube
+
+Solo terminal, endpoints y foco.
+
+---
+
+## Requisitos
 
 - Python 3.8+
 
----
+## Estado
 
-Project Status
-
-This project is in active development.
-
-Current version focuses on:
-
-- Core endpoint execution
-- Collections
-- Variables
-- Clean CLI UX
-
-Future versions may expand features while preserving simplicity.
+Proyecto en desarrollo activo.
