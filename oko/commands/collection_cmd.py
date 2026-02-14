@@ -7,6 +7,7 @@ from oko.service.service_collection import (
     create_collection,
     list_collections,
 )
+from oko.service.service_docs import generate_api_readme
 from oko.ui.prints import (
     print_success,
     print_error,
@@ -29,12 +30,14 @@ def add_collection(name: str | None = None):
             name = Prompt.ask("[prompt]Collection name[/prompt]")
 
         path = create_collection(oko_root, name)
+        docs_path = generate_api_readme()
 
         print_success(
             f"Collection [highlight]{name}[/highlight] created at:\n"
             f"[info]{path}[/info]",
             title="Collection Added",
         )
+        print_kv("API docs", str(docs_path))
 
     except Exception as e:
         print_error(str(e), title="Collection Error")
