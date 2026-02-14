@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "oko-cli"
-version = "0.2.1"
+version = "0.3.0"
 description = "Elegant CLI for API endpoint testing"
 readme = "README.md"
 authors = [{ name = "Edward Ojeda", email = "edward.ojeda.es@gmail.com" }]
@@ -31,7 +31,7 @@ oko = "oko.main:app"
 
 [project.urls]
 Homepage = "https://github.com/poll7872/oko"
-Repository = "https://github.com/tuusuario/oko"
+Repository = "https://github.com/poll7872/oko"
 Issues = "https://github.com/poll7872/oko/issues"
 
 [tool.hatch.build]
