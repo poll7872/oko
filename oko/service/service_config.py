@@ -120,6 +120,14 @@ def load_config() -> dict:
     raise FileNotFoundError("No OKO configuration found. Run 'oko init' first.")
 
 
+def save_config(config: dict) -> None:
+    """
+    Persists config.json to disk using config["root_path"].
+    """
+    config_path = Path(config["root_path"]) / "config.json"
+    config_path.write_text(json.dumps(config, indent=2))
+
+
 def _read_config(path: Path) -> dict:
     try:
         with path.open("r", encoding="utf-8") as f:
